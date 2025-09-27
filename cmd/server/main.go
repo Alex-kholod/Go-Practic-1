@@ -23,8 +23,7 @@ func main() {
 	// Элемент
 	mux.HandleFunc("GET /tasks/", h.GetTask)
 
-	// Подключаем логирование
-	handler := api.Logging(mux)
+	handler := api.Cors(mux)
 
 	addr := ":8080"
 	log.Println("listening on", addr)

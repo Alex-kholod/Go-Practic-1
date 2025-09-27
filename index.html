@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Test</title>
+</head>
+<body>
+    <button onclick="testCORS()">Test CORS</button>
+    <div id="result"></div>
+
+    <script>
+        async function testCORS() {
+            try {
+                const response = await fetch('http://localhost:8080/health', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                document.getElementById('result').innerHTML = 
+                    `Success: ${JSON.stringify(data)}`;
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    `CORS Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
