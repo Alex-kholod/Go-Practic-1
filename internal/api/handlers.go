@@ -79,7 +79,7 @@ func (h *Handlers) GetTask(w http.ResponseWriter, r *http.Request) {
 
 	t, err := h.Store.Get(id)
 	if err != nil {
-		if errors.Is(err, errors.New("not found")) {
+		if err.Error() == "not found" {
 			NotFound(w, "task not found")
 			return
 		}
@@ -131,7 +131,7 @@ func (h *Handlers) DeleteTask(w http.ResponseWriter, r *http.Request) {
 
 	err = h.Store.DeleteTask(id)
 	if err != nil {
-		if errors.Is(err, errors.New("not found")) {
+		if err.Error() == "not found" {
 			NotFound(w, "task not found")
 			return
 		}
