@@ -27,7 +27,8 @@ func (h *Handler) Routes() chi.Router {
 }
 
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, h.repo.List())
+	page, limit := paginationOptions(w, r)
+	writeJSON(w, http.StatusOK, h.repo.List(page, limit))
 }
 
 func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +54,11 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 		httpError(w, http.StatusBadRequest, "invalid json: require non-empty title")
 		return
 	}
-	t := h.repo.Create(req.Title)
+	t, err := h.repo.Create(req.Title)
+	if err != nil {
+		httpError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	writeJSON(w, http.StatusCreated, t)
 }
 
@@ -102,6 +107,24 @@ func parseID(w http.ResponseWriter, r *http.Request) (int64, bool) {
 		return 0, true
 	}
 	return id, false
+}
+
+func paginationOptions(w http.ResponseWriter, r *http.Request) (page int, limit int) {
+	var errPage error
+	var errLimit error
+
+	page, errPage = strconv.Atoi(chi.URLParam(r, "page"))
+	limit, errLimit = strconv.Atoi(chi.URLParam(r, "limit"))
+
+	if errPage == nil {
+		httpError(w, http.StatusBadRequest, "invalid pagination page option")
+		page = 1
+	}
+	if errLimit == nil {
+		httpError(w, http.StatusBadRequest, "invalid pagination limit option")
+		limit = 10
+	}
+	return
 }
 
 func writeJSON(w http.ResponseWriter, code int, v any) {

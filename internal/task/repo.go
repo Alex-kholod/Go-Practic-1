@@ -4,9 +4,11 @@ import (
 	"errors"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 var ErrNotFound = errors.New("task not found")
+var ErrLenTitle = errors.New("task title length must be >= 3 and <= 100")
 
 type Repo struct {
 	mu    sync.RWMutex
@@ -18,14 +20,32 @@ func NewRepo() *Repo {
 	return &Repo{items: make(map[int64]*Task)}
 }
 
-func (r *Repo) List() []*Task {
+func (r *Repo) List(page int, limit int) []*Task {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	out := make([]*Task, 0, len(r.items))
+
+	allTasks := make([]*Task, 0, len(r.items))
 	for _, t := range r.items {
-		out = append(out, t)
+		allTasks = append(allTasks, t)
 	}
-	return out
+
+	total := len(allTasks)
+
+	if total == 0 {
+		return allTasks
+	}
+
+	start := (page - 1) * limit
+	end := start + limit
+
+	if start >= total {
+		return []*Task{}
+	}
+	if end > total {
+		end = total
+	}
+
+	return allTasks[start:end]
 }
 
 func (r *Repo) Get(id int64) (*Task, error) {
@@ -38,14 +58,19 @@ func (r *Repo) Get(id int64) (*Task, error) {
 	return t, nil
 }
 
-func (r *Repo) Create(title string) *Task {
+func (r *Repo) Create(title string) (*Task, error) {
+	charCount := utf8.RuneCountInString(title)
+	if charCount < 3 || charCount > 100 {
+		return nil, ErrLenTitle
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.seq++
 	now := time.Now()
 	t := &Task{ID: r.seq, Title: title, CreatedAt: now, UpdatedAt: now, Done: false}
 	r.items[t.ID] = t
-	return t
+	return t, nil
 }
 
 func (r *Repo) Update(id int64, title string, done bool) (*Task, error) {
