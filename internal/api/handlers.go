@@ -88,3 +88,55 @@ func (h *Handlers) GetTask(w http.ResponseWriter, r *http.Request) {
 	}
 	JSON(w, http.StatusOK, t)
 }
+
+// PATH /tasks/{id}
+func (h *Handlers) UpdateDoneTask(w http.ResponseWriter, r *http.Request) {
+	// Ожидаем путь вида /tasks/123
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(parts) != 2 {
+		NotFound(w, "invalid path")
+		return
+	}
+	id, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		BadRequest(w, "invalid id")
+		return
+	}
+
+	t, err := h.Store.UpdateDone(id)
+	if err != nil {
+		if errors.Is(err, errors.New("not found")) {
+			NotFound(w, "task not found")
+			return
+		}
+		Internal(w, "unexpected error")
+		return
+	}
+	JSON(w, http.StatusOK, t)
+}
+
+// DELETE /tasks/{id}
+func (h *Handlers) DeleteTask(w http.ResponseWriter, r *http.Request) {
+	// Ожидаем путь вида /tasks/123
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(parts) != 2 {
+		NotFound(w, "invalid path")
+		return
+	}
+	id, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		BadRequest(w, "invalid id")
+		return
+	}
+
+	err = h.Store.DeleteTask(id)
+	if err != nil {
+		if errors.Is(err, errors.New("not found")) {
+			NotFound(w, "task not found")
+			return
+		}
+		Internal(w, "unexpected error")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

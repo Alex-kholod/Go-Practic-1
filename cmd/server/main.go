@@ -22,6 +22,8 @@ func main() {
 	mux.HandleFunc("POST /tasks", h.CreateTask)
 	// Элемент
 	mux.HandleFunc("GET /tasks/", h.GetTask)
+	mux.HandleFunc("PATCH /tasks/{id}", h.UpdateDoneTask)
+	mux.HandleFunc("DELETE /tasks/{id}", h.DeleteTask)
 
 	handler := api.Cors(mux)
 
