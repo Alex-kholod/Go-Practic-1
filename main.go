@@ -12,7 +12,11 @@ import (
 )
 
 func main() {
-	repo := task.NewRepo()
+	repo, err := task.NewRepo("tasks.json")
+	if err != nil {
+		log.Fatalf("Failed to create repository: %v", err)
+	}
+
 	h := task.NewHandler(repo)
 
 	r := chi.NewRouter()
@@ -26,7 +30,9 @@ func main() {
 	})
 
 	r.Route("/api", func(api chi.Router) {
-		api.Mount("/tasks", h.Routes())
+		r.Route("/v1", func(api chi.Router) {
+			api.Mount("/tasks", h.Routes())
+		})
 	})
 
 	addr := ":8080"

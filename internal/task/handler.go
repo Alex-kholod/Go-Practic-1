@@ -27,8 +27,12 @@ func (h *Handler) Routes() chi.Router {
 }
 
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
-	page, limit := paginationOptions(w, r)
-	writeJSON(w, http.StatusOK, h.repo.List(page, limit))
+	page, limit, err := paginationOptions(w, r)
+	doneFilter := filterOptions(r)
+	if err {
+		return
+	}
+	writeJSON(w, http.StatusOK, h.repo.List(page, limit, doneFilter))
 }
 
 func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
@@ -109,20 +113,33 @@ func parseID(w http.ResponseWriter, r *http.Request) (int64, bool) {
 	return id, false
 }
 
-func paginationOptions(w http.ResponseWriter, r *http.Request) (page int, limit int) {
+func paginationOptions(w http.ResponseWriter, r *http.Request) (page int, limit int, hasError bool) {
 	var errPage error
 	var errLimit error
 
-	page, errPage = strconv.Atoi(chi.URLParam(r, "page"))
-	limit, errLimit = strconv.Atoi(chi.URLParam(r, "limit"))
+	query := r.URL.Query()
+	page, errPage = strconv.Atoi(query.Get("page"))
+	limit, errLimit = strconv.Atoi(query.Get("limit"))
 
-	if errPage == nil {
+	if errPage != nil {
+		hasError = true
 		httpError(w, http.StatusBadRequest, "invalid pagination page option")
-		page = 1
 	}
-	if errLimit == nil {
+	if errLimit != nil {
+		hasError = true
 		httpError(w, http.StatusBadRequest, "invalid pagination limit option")
-		limit = 10
+	}
+	return
+}
+
+func filterOptions(r *http.Request) (doneFilter bool) {
+	doneFilter = false
+
+	query := r.URL.Query()
+	doneFlag := query.Get("done")
+
+	if doneFlag == "true" {
+		doneFilter = true
 	}
 	return
 }
