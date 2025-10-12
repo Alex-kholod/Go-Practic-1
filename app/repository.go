@@ -47,3 +47,68 @@ func (r *Repo) ListTasks(ctx context.Context) ([]Task, error) {
 	}
 	return out, rows.Err()
 }
+
+func (r *Repo) ListDone(ctx context.Context, done bool) ([]Task, error) {
+	const q = `SELECT id, title, done, created_at FROM tasks WHERE done = $1;`
+
+	rows, err := r.DB.QueryContext(ctx, q, done)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []Task
+	for rows.Next() {
+		var t Task
+		if err := rows.Scan(&t.ID, &t.Title, &t.Done, &t.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
+func (r *Repo) FindByID(ctx context.Context, id int) (*Task, error) {
+	const q = `SELECT id, title, done, created_at FROM tasks WHERE id = $1;`
+
+	var t Task
+	err := r.DB.QueryRowContext(ctx, q, id).Scan(&t.ID, &t.Title, &t.Done, &t.CreatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
+		return nil, err
+	}
+	return &t, nil
+}
+
+func (r *Repo) CreateMany(ctx context.Context, titles []string) ([]int, error) {
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	const query = `INSERT INTO tasks (title) VALUES ($1) RETURNING id;`
+	stmt, err := tx.PrepareContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	ids := make([]int, 0, len(titles))
+	for _, title := range titles {
+		var id int
+		err := stmt.QueryRowContext(ctx, title).Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}
