@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -13,12 +15,9 @@ import (
 )
 
 func Connect() *gorm.DB {
-	// currentDir, err := os.Getwd()
-	// if err != nil {
-	// 	log.Fatal("failed to get current directory: %w", err)
-	// }
-	// pathToEnv := filepath.Join(currentDir, "..", "..", "..", ".env")
-	// godotenv.Load(pathToEnv)
+	if err := loadEnv(); err != nil {
+		log.Fatalf("Failed to load .env: %v", err)
+	}
 
 	dbHost := getEnvValue("DB_HOST")
 	dbUser := getEnvValue("DB_USER")
@@ -54,8 +53,39 @@ func Connect() *gorm.DB {
 	return db
 }
 
+func loadEnv() error {
+	// Получаем путь к текущему файлу (postgres.go)
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return fmt.Errorf("failed to get current file path")
+	}
+
+	// Вычисляем путь к .env относительно расположения postgres.go
+	currentDir := filepath.Dir(filename)
+	projectRoot := filepath.Join(currentDir, "..", "..", "..")
+	envPath := filepath.Join(projectRoot, ".env")
+
+	// Нормализуем путь для Windows
+	envPath = filepath.Clean(envPath)
+
+	log.Printf("Looking for .env at: %s", envPath)
+
+	// Проверяем существует ли файл
+	if _, err := os.Stat(envPath); os.IsNotExist(err) {
+		return fmt.Errorf(".env file not found at: %s", envPath)
+	}
+
+	// Загружаем .env файл
+	if err := godotenv.Load(envPath); err != nil {
+		return fmt.Errorf("error loading .env file: %w", err)
+	}
+
+	log.Printf("✅ .env loaded from: %s", envPath)
+	return nil
+}
+
 func getEnvValue(key string) string {
-	_ = godotenv.Load("C:\\EDU\\Go\\pz6\\.env")
+	//_ = godotenv.Load("C:\\EDU\\Go\\pz6\\.env")
 	value := os.Getenv(key)
 	if value == "" {
 		log.Fatal("env value is empty")
