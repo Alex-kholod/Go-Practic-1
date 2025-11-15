@@ -19,19 +19,43 @@ type Repo struct {
 
 func NewRepo(db *mongo.Database) (*Repo, error) {
 	col := db.Collection("notes")
-	_, err := col.Indexes().CreateOne(context.Background(), mongo.IndexModel{
-		Keys:    bson.D{{Key: "title", Value: 1}},
-		Options: options.Index().SetUnique(true),
-	})
+
+	indexes := []mongo.IndexModel{
+		{
+			Keys:    bson.D{{Key: "title", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+		{
+			// Текстовый индекс для поиска
+			Keys: bson.D{
+				{Key: "title", Value: "text"},
+				{Key: "content", Value: "text"},
+			},
+			Options: options.Index().SetName("text_search"),
+		},
+		{
+			// TTL индекс для автоудаления
+			Keys:    bson.D{{Key: "expiresAt", Value: 1}},
+			Options: options.Index().SetExpireAfterSeconds(0),
+		},
+	}
+
+	_, err := col.Indexes().CreateMany(context.Background(), indexes)
 	if err != nil {
 		return nil, err
 	}
 	return &Repo{col: col}, nil
 }
 
-func (r *Repo) Create(ctx context.Context, title, content string) (Note, error) {
+func (r *Repo) Create(ctx context.Context, title, content string, expiresAt *time.Time) (Note, error) {
 	now := time.Now()
-	n := Note{Title: title, Content: content, CreatedAt: now, UpdatedAt: now}
+	n := Note{
+		Title:     title,
+		Content:   content,
+		CreatedAt: now,
+		UpdatedAt: now,
+		ExpiresAt: expiresAt,
+	}
 	res, err := r.col.InsertOne(ctx, n)
 	if err != nil {
 		return Note{}, err
@@ -55,12 +79,24 @@ func (r *Repo) ByID(ctx context.Context, idHex string) (Note, error) {
 	return n, nil
 }
 
-func (r *Repo) List(ctx context.Context, q string, limit, skip int64) ([]Note, error) {
+func (r *Repo) List(ctx context.Context, q string, limit int64, after string) ([]Note, error) {
 	filter := bson.M{}
+
 	if q != "" {
-		filter["title"] = bson.M{"$regex": q, "$options": "i"}
+		filter["$text"] = bson.M{"$search": q}
 	}
-	opts := options.Find().SetLimit(limit).SetSkip(skip).SetSort(bson.D{{Key: "createdAt", Value: -1}})
+
+	if after != "" {
+		afterID, err := primitive.ObjectIDFromHex(after)
+		if err == nil {
+			filter["_id"] = bson.M{"$lt": afterID}
+		}
+	}
+
+	opts := options.Find().
+		SetLimit(limit).
+		SetSort(bson.D{{Key: "_id", Value: -1}})
+
 	cur, err := r.col.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
@@ -78,7 +114,7 @@ func (r *Repo) List(ctx context.Context, q string, limit, skip int64) ([]Note, e
 	return out, cur.Err()
 }
 
-func (r *Repo) Update(ctx context.Context, idHex string, title, content *string) (Note, error) {
+func (r *Repo) Update(ctx context.Context, idHex string, title, content *string, expiresAt *time.Time) (Note, error) {
 	oid, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
 		return Note{}, ErrNotFound
@@ -90,6 +126,9 @@ func (r *Repo) Update(ctx context.Context, idHex string, title, content *string)
 	}
 	if content != nil {
 		set["content"] = *content
+	}
+	if expiresAt != nil {
+		set["expiresAt"] = *expiresAt
 	}
 
 	after := options.FindOneAndUpdate().SetReturnDocument(options.After)
@@ -116,4 +155,57 @@ func (r *Repo) Delete(ctx context.Context, idHex string) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+func (r *Repo) GetStats(ctx context.Context) (StatsResponse, error) {
+	pipeline := mongo.Pipeline{
+		{{Key: "$group", Value: bson.M{
+			"_id":           nil,
+			"totalNotes":    bson.M{"$sum": 1},
+			"avgContentLen": bson.M{"$avg": bson.M{"$strLenCP": "$content"}},
+			"maxContentLen": bson.M{"$max": bson.M{"$strLenCP": "$content"}},
+			"minContentLen": bson.M{"$min": bson.M{"$strLenCP": "$content"}},
+		}}},
+	}
+
+	cur, err := r.col.Aggregate(ctx, pipeline)
+	if err != nil {
+		return StatsResponse{}, err
+	}
+	defer cur.Close(ctx)
+
+	var results []StatsResponse
+	if err := cur.All(ctx, &results); err != nil {
+		return StatsResponse{}, err
+	}
+
+	if len(results) == 0 {
+		return StatsResponse{}, nil
+	}
+
+	return results[0], nil
+}
+
+func (r *Repo) Search(ctx context.Context, query string, limit int64) ([]Note, error) {
+	filter := bson.M{"$text": bson.M{"$search": query}}
+
+	opts := options.Find().
+		SetLimit(limit).
+		SetSort(bson.D{{Key: "score", Value: bson.M{"$meta": "textScore"}}})
+
+	cur, err := r.col.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	var out []Note
+	for cur.Next(ctx) {
+		var n Note
+		if err := cur.Decode(&n); err != nil {
+			return nil, err
+		}
+		out = append(out, n)
+	}
+	return out, cur.Err()
 }
