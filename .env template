@@ -1,0 +1,12 @@
+container_name = pz9
+
+DB_HOST=127.0.0.1
+DB_USER=логин
+DB_PASSWORD=пароль
+DB_NAME=pz9
+DB_PORT=5432
+DB_SSL_MODE=disable
+
+APP_ADDR = :8081
+
+BCRYPT_COST = 12
