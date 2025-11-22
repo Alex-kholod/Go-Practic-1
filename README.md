@@ -25,5 +25,16 @@ go run ./cmd/api
    
 2. Запустили код и выполнили запросы на регистрацию и авторизацию
    - /auth/register
+      Регистрация
+      <img width="974" height="466" alt="image" src="https://github.com/user-attachments/assets/550e1d9c-867e-4c92-aa9b-6c8a7d2dd839" />
+      Повторная регистрация
+      <img width="974" height="427" alt="image" src="https://github.com/user-attachments/assets/ee72eaba-e529-44d0-adea-d8ba69a7a2a9" />
+
    - /auth/login
+     Вход
+     <img width="974" height="468" alt="image" src="https://github.com/user-attachments/assets/fbef121d-21c3-4be9-ad04-1fec871af175" />
+     Неверный вход
+     <img width="974" height="409" alt="image" src="https://github.com/user-attachments/assets/6e803a23-570a-4b2e-ace7-fd436e6ea229" />
+
+
 
