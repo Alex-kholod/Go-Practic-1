@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"net/http"
+	"pz10/internal/http/middleware"
 	"pz10/internal/repo"
 )
 
@@ -40,8 +41,7 @@ func (s *Service) LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) MeHandler(w http.ResponseWriter, r *http.Request) {
-	// клеймы положим в контекст в AuthN-мидлваре
-	claims := r.Context().Value(ctxClaims{}).(map[string]any)
+	claims := r.Context().Value(middleware.CtxClaimsKey).(map[string]any)
 	jsonOK(w, map[string]any{
 		"id": claims["sub"], "email": claims["email"], "role": claims["role"],
 	})
