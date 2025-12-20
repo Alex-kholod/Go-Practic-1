@@ -1,0 +1,279 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "REST API для заметок (CRUD).",
+        "title": "Notes API",
+        "contact": {
+            "name": "Alexey",
+            "email": "kholodkov.a.d@edu.mirea.ru"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api/v1",
+    "paths": {
+        "/notes": {
+            "get": {
+                "description": "Возвращает список заметок",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notes"
+                ],
+                "summary": "Список заметок",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/core.Note"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notes"
+                ],
+                "summary": "Создать заметку",
+                "parameters": [
+                    {
+                        "description": "Данные новой заметки",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/core.NoteCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/core.Note"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/notes/{id}": {
+            "get": {
+                "tags": [
+                    "notes"
+                ],
+                "summary": "Получить заметку",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/core.Note"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Обновляет заметку",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notes"
+                ],
+                "summary": "Обновить заметку",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID заметки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Поля для обновления",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/core.NoteUpdate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/core.Note"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "notes"
+                ],
+                "summary": "Удалить заметку",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "core.Note": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "example": "Текст заметки"
+                },
+                "createdAt": {
+                    "type": "string",
+                    "example": "2024-01-15T10:30:00Z"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Моя заметка"
+                },
+                "updatedAt": {
+                    "type": "string",
+                    "example": "2024-01-15T14:45:00Z"
+                }
+            }
+        },
+        "core.NoteCreate": {
+            "type": "object",
+            "required": [
+                "title"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Текст заметки"
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "example": "Новая заметка"
+                }
+            }
+        },
+        "core.NoteUpdate": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Новый текст"
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "example": "Обновлено"
+                }
+            }
+        }
+    }
+}
