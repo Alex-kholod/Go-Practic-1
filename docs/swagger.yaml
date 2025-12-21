@@ -1,0 +1,188 @@
+basePath: /api/v1
+definitions:
+  core.Note:
+    properties:
+      content:
+        example: Текст заметки
+        type: string
+      createdAt:
+        example: "2024-01-15T10:30:00Z"
+        type: string
+      id:
+        example: 1
+        type: integer
+      title:
+        example: Моя заметка
+        type: string
+      updatedAt:
+        example: "2024-01-15T14:45:00Z"
+        type: string
+    type: object
+  core.NoteCreate:
+    properties:
+      content:
+        example: Текст заметки
+        maxLength: 1000
+        type: string
+      title:
+        example: Новая заметка
+        maxLength: 100
+        minLength: 1
+        type: string
+    required:
+    - title
+    type: object
+  core.NoteUpdate:
+    properties:
+      content:
+        example: Новый текст
+        maxLength: 1000
+        type: string
+      title:
+        example: Обновлено
+        maxLength: 100
+        minLength: 1
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: kholodkov.a.d@edu.mirea.ru
+    name: Alexey
+  description: REST API для заметок (CRUD).
+  title: Notes API
+  version: "1.0"
+paths:
+  /notes:
+    get:
+      description: Возвращает список заметок
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/core.Note'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Список заметок
+      tags:
+      - notes
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные новой заметки
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/core.NoteCreate'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/core.Note'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать заметку
+      tags:
+      - notes
+  /notes/{id}:
+    delete:
+      parameters:
+      - description: ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Удалить заметку
+      tags:
+      - notes
+    get:
+      parameters:
+      - description: ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/core.Note'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить заметку
+      tags:
+      - notes
+    put:
+      consumes:
+      - application/json
+      description: Обновляет заметку
+      parameters:
+      - description: ID заметки
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Поля для обновления
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/core.NoteUpdate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/core.Note'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Обновить заметку
+      tags:
+      - notes
+swagger: "2.0"
